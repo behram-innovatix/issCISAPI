@@ -69,6 +69,13 @@ class SyncSources extends Command
 
             $this->components->twoColumnDetail("<options=bold>{$source->name}</>", "{$run->status->value} · {$mode->value} · ".$run->started_at->diffForHumans($run->finished_at, true));
 
+            foreach ($run->replication ?? [] as $table => $counts) {
+                $detail = number_format($counts['read']).' read · '.number_format($counts['rows']).' rows';
+                $detail .= $counts['deleted'] ? ' · '.number_format($counts['deleted']).' removed' : '';
+                $detail .= isset($counts['warning']) ? " · <fg=yellow>{$counts['warning']}</>" : '';
+                $this->components->twoColumnDetail("  <fg=gray>table</> {$table}", $detail);
+            }
+
             foreach ($run->stats as $stream => $counts) {
                 $detail = number_format($counts['read']).' read · '.number_format($counts['active']).' active';
                 $detail .= $counts['deleted'] ? ' · '.number_format($counts['deleted']).' deleted' : '';

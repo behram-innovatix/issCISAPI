@@ -58,6 +58,26 @@ class DataSource extends Model
     }
 
     /**
+     * Tables copied from this (database) source.
+     *
+     * @return HasMany<SourceTable, $this>
+     */
+    public function sourceTables(): HasMany
+    {
+        return $this->hasMany(SourceTable::class);
+    }
+
+    /**
+     * How this (database) source builds its dashboard streams.
+     *
+     * @return HasMany<StreamModel, $this>
+     */
+    public function streamModels(): HasMany
+    {
+        return $this->hasMany(StreamModel::class);
+    }
+
+    /**
      * @return HasMany<SyncCursor, $this>
      */
     public function cursors(): HasMany

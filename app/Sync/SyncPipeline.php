@@ -4,6 +4,7 @@ namespace App\Sync;
 
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Contracts\Connector;
+use App\Connectors\Contracts\ReplicatesTables;
 use App\Connectors\StreamDef;
 use App\Enums\SourceStatus;
 use App\Enums\SyncMode;
@@ -44,6 +45,11 @@ class SyncPipeline
         try {
             $connector = $this->connectors->for($source);
             $canonical = $this->catalog->streams($source->platform);
+
+            // database sources first copy their selected tables; their streams are built from the copies
+            if ($connector instanceof ReplicatesTables) {
+                $run->update(['replication' => $connector->replicate($source, $run, $mode)]);
+            }
 
             foreach ($connector->streams($source) as $stream) {
                 if (! isset($canonical[$stream->name])) {
@@ -99,6 +105,8 @@ class SyncPipeline
     {
         $cursor = SyncCursor::firstOrNew(['data_source_id' => $source->id, 'stream' => $stream->name]);
         $latest = $cursor->cursor;
+        // a read from scratch (full run, no cursor yet, or a stream read whole) is the source's complete state
+        $whole = $mode === SyncMode::Full || $stream->complete || $cursor->cursor === null;
         $read = 0;
         $changed = 0;
 
@@ -149,7 +157,7 @@ class SyncPipeline
                 $read += count($records);
             });
 
-        $deleted = $mode === SyncMode::Full || $stream->complete
+        $deleted = $whole
             ? RawRecord::where('data_source_id', $source->id)
                 ->where('stream', $stream->name)
                 ->current()

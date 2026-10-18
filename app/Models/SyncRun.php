@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * One sync of one source: the audit trail of what was read, kept and built, and why it failed.
  */
-#[Fillable(['data_source_id', 'mode', 'status', 'stats', 'error', 'started_at', 'finished_at'])]
+#[Fillable(['data_source_id', 'mode', 'status', 'stats', 'replication', 'error', 'started_at', 'finished_at'])]
 class SyncRun extends Model
 {
     /**
@@ -25,6 +25,7 @@ class SyncRun extends Model
             'mode' => SyncMode::class,
             'status' => SyncStatus::class,
             'stats' => 'array',
+            'replication' => 'array',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
         ];

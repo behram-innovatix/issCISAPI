@@ -23,6 +23,8 @@ return [
         'password' => env('CIS_EDU_DB_PASSWORD'),
         'trust_server_certificate' => (bool) env('CIS_EDU_DB_TRUST_SERVER_CERTIFICATE', true),
         'academic_year' => env('CIS_EDU_ACADEMIC_YEAR', '2025/2026'),
+        // first day of school-year data the large tables (attendance, behaviour) are copied from
+        'from_date' => env('CIS_EDU_FROM_DATE', '2025-08-01'),
         'schedule' => env('CIS_EDU_SCHEDULE', '0 * * * *'),
     ],
 

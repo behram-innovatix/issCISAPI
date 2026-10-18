@@ -64,6 +64,23 @@ return [
             ]) : [],
         ],
 
+        // Copies of the source tables that database connections replicate (see config/replication.php).
+        // A separate database, so dashboard-stream queries over the copies can't reach the CIS's own tables.
+        'replica' => [
+            'driver' => 'mysql',
+            'host' => env('CIS_REPLICA_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('CIS_REPLICA_DB_PORT', env('DB_PORT', '3306')),
+            'database' => env('CIS_REPLICA_DB_DATABASE', 'iss_cis_replica'),
+            'username' => env('CIS_REPLICA_DB_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('CIS_REPLICA_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

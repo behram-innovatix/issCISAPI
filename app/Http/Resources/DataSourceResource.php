@@ -33,8 +33,12 @@ class DataSourceResource extends JsonResource
             'connector' => $definition
                 ? ['label' => $definition->label, 'category' => $definition->category, 'icon' => $definition->icon, 'features' => $definition->features]
                 : ['label' => $this->type, 'category' => 'Unknown', 'icon' => 'plug', 'features' => []],
-            // seeded or imported sources whose settings aren't complete yet
-            'needs_setup' => ! $definition || Validator::make(['config' => $config], $definition->rules())->fails(),
+            'settings_complete' => $settingsComplete = $definition && Validator::make(['config' => $config], $definition->rules())->passes(),
+            // settings incomplete (e.g. seeded), or a database source with no dashboard stream mapped yet
+            'needs_setup' => ! $settingsComplete || (in_array('tables', $definition->features, true) && ! $this->streamModels()->exists()),
+            'tables' => $definition && in_array('tables', $definition->features, true)
+                ? ['copied' => $this->sourceTables()->count(), 'streams' => $this->streamModels()->count()]
+                : null,
             'ingest_url' => $definition && in_array('ingest', $definition->features, true)
                 ? str_replace('__stream__', '{stream}', route('ingest.store', [$this->id, '__stream__']))
                 : null,

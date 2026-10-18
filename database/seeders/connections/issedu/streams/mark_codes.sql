@@ -11,7 +11,7 @@ SELECT
             WHEN m.statistical_meaning = 'Unauthorised Absence' THEN 4
             ELSE 5 END)
         WHEN 1 THEN 'late' WHEN 2 THEN 'present' WHEN 3 THEN 'auth' WHEN 4 THEN 'unauth' ELSE 'none' END AS category,
-    MAX(m.updated_at) AS updated_at
-FROM tbl_mark_types m
+    MAX(m._cis_synced_at) AS updated_at
+FROM {{tbl_mark_types}} m
 WHERE m.deleted_at IS NULL AND m.mark_type IS NOT NULL
 GROUP BY m.mark_type

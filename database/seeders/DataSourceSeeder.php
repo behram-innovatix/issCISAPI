@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\DataSource;
+use App\Replication\ReplicaSchema;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
 
@@ -20,7 +21,7 @@ class DataSourceSeeder extends Seeder
     public function run(): void
     {
         $edu = config('cis_sources.issedu');
-        $this->seed('issEduApi · SQL Server', 'database', 'edu', filled($edu['host']), [
+        $issEdu = $this->seed('issEduApi · SQL Server', 'database', 'edu', filled($edu['host']), [
             'driver' => 'sqlsrv',
             'host' => $edu['host'],
             'port' => $edu['port'] ? (int) $edu['port'] : null,
@@ -28,12 +29,12 @@ class DataSourceSeeder extends Seeder
             'username' => $edu['username'],
             'password' => $edu['password'],
             'trust_server_certificate' => $edu['trust_server_certificate'],
-            'incremental' => true,
-            'parameters' => "academic_year = {$edu['academic_year']}",
-            'queries' => collect(File::files(database_path('seeders/connections/issedu')))
-                ->mapWithKeys(fn ($file) => [$file->getFilenameWithoutExtension() => trim($file->getContents())])
-                ->all(),
+            'parameters' => "academic_year = {$edu['academic_year']}\nfrom_date = {$edu['from_date']}",
         ], $edu['schedule']);
+
+        if ($issEdu->wasRecentlyCreated) {
+            $this->tablesAndStreams($issEdu, database_path('seeders/connections/issedu'));
+        }
 
         foreach (['hrm' => ['HRM API', 'hr'], 'finance' => ['Finance API', 'fin']] as $key => [$name, $platform]) {
             $api = config("cis_sources.{$key}");
@@ -49,7 +50,7 @@ class DataSourceSeeder extends Seeder
     /**
      * @param  array<string, mixed>  $config
      */
-    private function seed(string $name, string $type, string $platform, bool $configured, array $config, ?string $schedule = null): void
+    private function seed(string $name, string $type, string $platform, bool $configured, array $config, ?string $schedule = null): DataSource
     {
         $source = DataSource::firstOrCreate(['name' => $name], [
             'type' => $type,
@@ -63,5 +64,40 @@ class DataSourceSeeder extends Seeder
         $this->command?->info($source->wasRecentlyCreated
             ? "{$name}: created".($configured ? '' : ' (paused until its settings are filled in)')
             : "{$name}: already exists, left unchanged");
+
+        return $source;
+    }
+
+    /**
+     * The tables a database connection copies (tables.php: name => columns, filter) and the queries
+     * that build its dashboard streams from the copies (streams/<stream>.sql). The copies are
+     * created and filled on the first sync.
+     */
+    private function tablesAndStreams(DataSource $source, string $directory): void
+    {
+        foreach (require "{$directory}/tables.php" as $name => $table) {
+            $source->sourceTables()->create([
+                'schema' => null,
+                'name' => $name,
+                'replica_table' => ReplicaSchema::replicaName($source, null, $name),
+                'columns' => $table['columns'],
+                'primary_key' => ['uid'],
+                'cursor_column' => 'updated_at',
+                'filter' => $table['filter'] ?? null,
+                'column_types' => [],
+            ]);
+        }
+
+        foreach (File::files("{$directory}/streams") as $file) {
+            $source->streamModels()->create([
+                'stream' => $file->getFilenameWithoutExtension(),
+                'kind' => 'query',
+                'sql' => trim($file->getContents()),
+                // each query returns updated_at, so the stream syncs incrementally
+                'output_columns' => ['id', 'updated_at'],
+            ]);
+        }
+
+        $this->command?->info("{$source->name}: ".count(require "{$directory}/tables.php").' tables to copy, '.count(File::files("{$directory}/streams")).' dashboard streams');
     }
 }

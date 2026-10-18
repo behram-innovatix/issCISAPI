@@ -23,6 +23,7 @@ class SyncRunResource extends JsonResource
             'mode' => $this->mode->value,
             'status' => $this->status->value,
             'stats' => (object) ($this->stats ?? []),
+            'replication' => $this->replication ? (object) $this->replication : null,
             'error' => $this->error,
             'started_at' => $this->started_at->toIso8601String(),
             'finished_at' => $this->finished_at?->toIso8601String(),

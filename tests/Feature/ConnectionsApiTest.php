@@ -35,7 +35,7 @@ class ConnectionsApiTest extends TestCase
             ->assertJsonPath('data.connectors.0.fields.2.type', 'secret')
             ->assertJsonPath('data.connectors.0.fields.2.when', ['auth' => 'token'])
             ->assertJsonPath('data.connectors.1.type', 'database')
-            ->assertJsonPath('data.connectors.1.fields.9.type', 'map')
+            ->assertJsonPath('data.connectors.1.features', ['tables'])
             ->assertJsonPath('data.connectors.3.features', ['uploads'])
             ->assertJsonPath('data.connectors.4.features', ['ingest'])
             ->assertJsonPath('data.planned', [])
